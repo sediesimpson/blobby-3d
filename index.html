@@ -26,7 +26,8 @@
 
       // 2. The camera
       const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-      camera.position.set(0, 0, 6);
+      camera.position.set(0, 0.6, 6);
+      camera.lookAt(0, -0.1, 0);
 
       // 3. The renderer
       const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -72,12 +73,17 @@
 
       geometry.computeVertexNormals();
 
-      // A soft, slightly see-through material
+      // A ghostly material: see-through, glowing from inside, soft at the edges
       const material = new THREE.MeshPhysicalMaterial({
         color: '#bfe3f7',
         transparent: true,
-        opacity: 0.75,
-        roughness: 0.3
+        opacity: 0.7,
+        roughness: 0.35,
+        emissive: '#bfe3f7',
+        emissiveIntensity: 0.35,
+        sheen: 1,
+        sheenColor: '#ffffff',
+        sheenRoughness: 0.4
       });
 
       const blobby = new THREE.Mesh(geometry, material);
@@ -135,13 +141,53 @@
       placeOnFace(smile, 0, -0.27, 0);
       smile.rotation.z = Math.PI;
 
-      // 6. The lights
+      // 6. The ghostly glow and the shadow
+
+      // Draws a soft, fuzzy circle with code, to use like an image
+      function makeSoftCircle(red, green, blue, strength) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const paint = canvas.getContext('2d');
+        const gradient = paint.createRadialGradient(128, 128, 0, 128, 128, 128);
+        gradient.addColorStop(0, `rgba(${red}, ${green}, ${blue}, ${strength})`);
+        gradient.addColorStop(1, `rgba(${red}, ${green}, ${blue}, 0)`);
+        paint.fillStyle = gradient;
+        paint.fillRect(0, 0, 256, 256);
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        return texture;
+      }
+
+      // A soft blue halo behind Blobby
+      const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: makeSoftCircle(170, 220, 250, 0.7),
+        depthWrite: false
+      }));
+      glow.scale.set(4.2, 4.6, 1);
+      glow.position.set(0, -0.2, -1.2);
+      blobby.add(glow);
+
+      // A soft shadow on the floor underneath him
+      const shadow = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.6, 2.6),
+        new THREE.MeshBasicMaterial({
+          map: makeSoftCircle(70, 100, 130, 0.45),
+          transparent: true,
+          depthWrite: false
+        })
+      );
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.y = -1.55;
+      scene.add(shadow);
+
+      // 7. The lights
       const softLight = new THREE.AmbientLight('white', 1);
       const sunLight = new THREE.DirectionalLight('white', 2);
       sunLight.position.set(3, 4, 5);
       scene.add(softLight, sunLight);
 
-      // 7. Take the picture
+      // 8. Take the picture
       renderer.render(scene, camera);
     </script>
   </body>
