@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title> blobby, but in 3d </title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      // 1. The stage
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#fdf6ec');
+        
+        // 2. The camera
+        const camera = new THREE.PerspectiveCamera (50, window.innerWidth/ window.innerHeight, 0.1, 100);
+        camera.position.set(0,0,6);
+
+        // 3. The renderer 
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 4. Blobby (just a ball for now)
+        const geometry = new THREE.SphereGeometry(1, 64, 64);
+        const material = new THREE.MeshStandardMaterial({ color: '#bfe3f7' });
+        const blobby = new THREE.Mesh(geometry, material);
+        scene.add(blobby);
+
+        // 5. The lights
+        const softLight = new THREE.AmbientLight('white', 1);
+        const sunLight = new THREE.DirectionalLight('white', 2);
+        sunLight.position.set(3, 4, 5);
+        scene.add(softLight, sunLight);
+
+        // 6. Take the picture
+        renderer.render(scene, camera);
+    </script>
+  </body>
+</html>
+
