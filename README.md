@@ -1,15 +1,15 @@
 # Blobby 3D 👻
 
-A little translucent, jelly-like ghost who peeks in from the edge of the screen,
+a little translucent, jelly-like ghost who peeks in from the edge of the screen,
 waddles to the middle, hops, twirls, and waltzes away.
 
-This is the 3D version of [Blobby](https://github.com/sediesimpson/blobby).
+This is the 3D version of [blobby](https://github.com/sediesimpson/blobby).
 
-**[Watch Blobby](https://sediesimpson.github.io/blobby-3d/)**
+**[watch blobby](https://sediesimpson.github.io/blobby-3d/)**
 
 ![Blobby in 3D](blobby-3d.png)
 
-## How it's made
+## how it's made
 
 - **Three.js** for the 3D scene, camera, lights and rendering
 - **One sculpted sphere** for Blobby's body, so there are no seams
@@ -17,7 +17,7 @@ This is the 3D version of [Blobby](https://github.com/sediesimpson/blobby).
 - **A timeline written in JavaScript** with easing, like CSS keyframes rebuilt by hand
 - **Squash and stretch, anticipation and follow-through**, three classic animation principles
 
-## The show
+## the show
 
 1. **Peek**: leans in from the left edge, with a curious head tilt
 2. **Waddle**: a sqgeuishy walk to centre sta
@@ -26,7 +26,7 @@ This is the 3D version of [Blobby](https://github.com/sediesimpson/blobby).
 
 If your computer is set to reduce motion, Blobby skips the show and stands calmly in the middle instead.
 
-## Run it yourself
+## run it yourself
 
 ```
 git clone https://github.com/sediesimpson/blobby-3d.git
