@@ -339,9 +339,38 @@
           // As he spins, his soft top gets flung outwards
           lean = Math.sin(twirl * Math.PI) * 0.18;
           squash = -Math.sin(twirl * Math.PI) * 0.06;
+                } else if (time < 19.6) {
+          // Part 6: the waltz. He glides off to the right, turning slowly as he goes
+          const waltz = progress(time, 12.6, 19.6);
+          x = blend(0, -edge + 1.6, easeInOut(waltz));
+
+          // Two slow, graceful turns while travelling, like real waltzers
+          turn = easeInOut(waltz) * Math.PI * 4;
+
+          // Four bars of waltz time: ONE-two-three, ONE-two-three...
+          const bar = (waltz * 4) % 1;
+          const beat = bar * 3;
+
+          if (beat < 1) {
+            // ONE: rise up and sweep forward
+            lift = Math.sin(beat * Math.PI) * 0.18;
+            tilt = -Math.sin(beat * Math.PI) * 0.15;
+            squash = -Math.sin(beat * Math.PI) * 0.05;
+          } else if (beat < 2) {
+            // two: settle down softly
+            squash = Math.sin((beat - 1) * Math.PI) * 0.06;
+          } else {
+            // three: a little lift, leaning back, ready for the next ONE
+            lift = Math.sin((beat - 2) * Math.PI) * 0.06;
+            tilt = Math.sin((beat - 2) * Math.PI) * 0.06;
+          }
+
+          // His soft top trails behind as he glides
+          const speed = 6 * waltz * (1 - waltz);
+          lean = -speed * 0.08;
         } else {
-          // Part 6: standing happily in the middle (the waltz comes next!)
-          x = 0;
+          // Part 7: he's gone! Wait just off the right edge
+          x = -edge + 1.6;
         }
 
         // Breathing: a little taller, then a little wider
