@@ -173,8 +173,8 @@
         depthWrite: false
       }));
       glow.scale.set(4.2, 4.6, 1);
-      glow.position.set(0, -0.2, -1.2);
-      blobby.add(glow);
+      glow.position.set(0, 0.1, -1.2);
+      scene.add(glow);
 
       // A soft shadow on the floor underneath him
       const shadow = new THREE.Mesh(
@@ -196,9 +196,10 @@
       scene.add(softLight, sunLight);
 
       // 8. Make him jiggle like jelly
-      function jiggle(time) {
+      // "lean" is extra sway, so his top can lag behind when he moves
+      function jiggle(time, lean) {
         // How far the top of him sways, compared to his feet
-        const swayX = Math.sin(time * 2.2) * 0.06;
+        const swayX = Math.sin(time * 2.2) * 0.06 + lean;
         const swayZ = Math.cos(time * 1.7) * 0.03;
 
         for (let i = 0; i < points.count; i++) {
@@ -224,25 +225,149 @@
         face.position.set(swayX * faceBend, 0, swayZ * faceBend);
       }
 
-      // 9. The animation loop: runs about 60 times a second
+      // 9. Little helpers for the timeline
+
+      // How far through a moment we are: 0 before it starts, 1 once it's over
+      function progress(time, start, end) {
+        return Math.min(Math.max((time - start) / (end - start), 0), 1);
+      }
+
+      // Slow, fast, slow: like ease-in-out in CSS
+      function easeInOut(t) {
+        return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+      }
+
+      // Blend between two numbers: t = 0 gives a, t = 1 gives b
+      function blend(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      // One hop, from start (0) to finish (1): crouch, jump, land, settle
+      function hop(h) {
+        let lift = 0;
+        let squash = 0;
+
+        if (h < 0.25) {
+          // Crouch: squish down to gather energy
+          squash = Math.sin((h / 0.25) * Math.PI / 2) * 0.18;
+        } else if (h < 0.75) {
+          // Jump: fly up, stretching tall
+          const air = (h - 0.25) / 0.5;
+          lift = Math.sin(air * Math.PI) * 0.7;
+          squash = blend(0.18, -0.12, Math.min(air * 4, 1));
+          if (air > 0.75) squash = blend(-0.12, 0, (air - 0.75) * 4);
+        } else {
+          // Land: squish into the floor, then settle
+          squash = Math.sin(((h - 0.75) / 0.25) * Math.PI) * 0.16;
+        }
+
+        return { lift, squash };
+      }
+
+      // How far from the middle to the left edge of the screen
+      function screenEdge() {
+        const halfHeight = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z;
+        return halfHeight * camera.aspect;
+      }
+
+      // 10. The show: runs about 60 times a second
       const clock = new THREE.Clock();
 
       renderer.setAnimationLoop(() => {
         const time = clock.getElapsedTime();
+        const edge = -screenEdge();
 
-        jiggle(time);
+        // Blobby's pose for this frame. Each part of the show changes these.
+        let x = edge - 1.6;   // where he stands, left to right
+        let tilt = 0;         // leaning sideways (negative = towards the right)
+        let turn = 0;         // turning to face left or right
+        let lift = 0;         // how high off the floor
+        let squash = 0;       // squished down (positive) or stretched up (negative)
+        let lean = 0;         // jelly lag: how far his top trails behind
+
+        if (time < 3.4) {
+          // Part 1: the peek. He slides out from behind the edge and leans in...
+          const peek = easeInOut(progress(time, 0.8, 2.6));
+          x = blend(edge - 1.6, edge - 0.2, peek);
+          tilt = blend(0, -0.45, peek);
+          turn = blend(0, 0.3, peek);
+
+          // ...then a curious little head tilt: "hmm?"
+          const curious = progress(time, 2.6, 3.4);
+          tilt += Math.sin(curious * Math.PI) * 0.15;
+        } else if (time < 4.2) {
+          // Part 2: he straightens up, ready to step out
+          const ready = easeInOut(progress(time, 3.4, 4.2));
+          x = blend(edge - 0.2, edge + 0.4, ready);
+          tilt = blend(-0.45, 0, ready);
+          turn = blend(0.3, 0.35, ready);
+          squash = Math.sin(ready * Math.PI) * 0.06;
+        } else if (time < 8.6) {
+          // Part 3: the squishy waddle to centre stage
+          const walk = progress(time, 4.2, 8.6);
+          x = blend(edge + 0.4, 0, easeInOut(walk));
+
+          // Six steps. Each step goes: push off, bounce up, squish down on landing.
+          const step = walk * 6;
+          const bounce = Math.abs(Math.sin(step * Math.PI));
+          lift = bounce * 0.12;
+          squash = (1 - bounce) * 0.1 - bounce * 0.04;
+
+          // Rock from foot to foot
+          tilt = Math.sin(step * Math.PI) * 0.1;
+
+          // Face the way he's walking, then turn back to us at the end
+          turn = blend(0.35, 0, progress(time, 7.8, 8.6));
+
+          // His wobbly top trails behind as he moves, like jelly
+          const speed = 6 * walk * (1 - walk);
+          lean = -speed * 0.12;
+        } else if (time < 10.6) {
+          // Part 4: two happy hops
+          x = 0;
+          const hops = progress(time, 8.6, 10.6) * 2;
+          const pose = hop(hops % 1);
+          lift = pose.lift;
+          squash = pose.squash;
+        } else if (time < 12.6) {
+          // Part 5: the twirl, a full spin in 3D
+          x = 0;
+          const twirl = easeInOut(progress(time, 10.6, 12.6));
+          turn = twirl * Math.PI * 2;
+          lift = Math.sin(twirl * Math.PI) * 0.25;
+
+          // As he spins, his soft top gets flung outwards
+          lean = Math.sin(twirl * Math.PI) * 0.18;
+          squash = -Math.sin(twirl * Math.PI) * 0.06;
+        } else {
+          // Part 6: standing happily in the middle (the waltz comes next!)
+          x = 0;
+        }
 
         // Breathing: a little taller, then a little wider
         const breath = Math.sin(time * 2) * 0.03;
-        character.scale.set(1 - breath / 2, 1 + breath, 1 - breath / 2);
 
-        // The shadow breathes with him
-        shadow.scale.setScalar(1 - breath);
+        // Put Blobby in this frame's pose
+        character.position.x = x;
+        character.position.y = -1.5 + lift;
+        character.rotation.z = tilt;
+        character.rotation.y = turn;
+        character.scale.set(1 + squash / 2 - breath / 2, 1 - squash + breath, 1 + squash / 2 - breath / 2);
+        jiggle(time, lean);
+
+        // The halo floats along behind him
+        glow.position.x = x;
+        glow.position.y = 0.1 + lift;
+
+        // The shadow follows him, and shrinks when he's off the ground
+        shadow.position.x = x;
+        shadow.scale.setScalar(1 - breath - lift * 1.5);
+        shadow.material.opacity = 1 - lift * 2;
 
         renderer.render(scene, camera);
       });
 
-      // 10. Keep everything the right shape if the window changes size
+      // 11. Keep everything the right shape if the window changes size
       window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
