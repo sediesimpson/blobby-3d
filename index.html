@@ -84,13 +84,64 @@
       blobby.position.y = 0.3;
       scene.add(blobby);
 
-      // 5. The lights
+      // 5. Blobby's face
+      const face = new THREE.Group();
+      blobby.add(face);
+
+      const eyeMaterial = new THREE.MeshStandardMaterial({ color: '#2b3a4a', roughness: 0.4 });
+      const sparkleMaterial = new THREE.MeshBasicMaterial({ color: 'white' });
+      const cheekMaterial = new THREE.MeshStandardMaterial({ color: '#f7b6c8', transparent: true, opacity: 0.8 });
+
+      // Finds the spot on Blobby's front surface for a given x,
+      // and turns things to face outwards from there
+      function placeOnFace(thing, x, y, outwards) {
+        const z = Math.sqrt(1 - x * x);
+        thing.position.set(x * (1 + outwards), y, z * (1 + outwards));
+        thing.rotation.y = Math.asin(x);
+        face.add(thing);
+      }
+
+      // Eyes: dark navy ovals pressed onto the surface
+      const eyeShape = new THREE.SphereGeometry(0.13, 32, 32);
+      const leftEye = new THREE.Mesh(eyeShape, eyeMaterial);
+      leftEye.scale.set(1, 1.15, 0.45);
+      placeOnFace(leftEye, -0.3, -0.1, 0);
+
+      const rightEye = new THREE.Mesh(eyeShape, eyeMaterial);
+      rightEye.scale.set(1, 1.15, 0.45);
+      placeOnFace(rightEye, 0.3, -0.1, 0);
+
+      // Sparkles: tiny white dots that make the eyes look alive
+      const sparkleShape = new THREE.SphereGeometry(0.04, 16, 16);
+      const leftSparkle = new THREE.Mesh(sparkleShape, sparkleMaterial);
+      placeOnFace(leftSparkle, -0.26, -0.04, 0.05);
+
+      const rightSparkle = new THREE.Mesh(sparkleShape, sparkleMaterial);
+      placeOnFace(rightSparkle, 0.34, -0.04, 0.05);
+
+      // Rosy cheeks: flat pink ovals
+      const cheekShape = new THREE.SphereGeometry(0.12, 32, 32);
+      const leftCheek = new THREE.Mesh(cheekShape, cheekMaterial);
+      leftCheek.scale.set(1.3, 0.7, 0.2);
+      placeOnFace(leftCheek, -0.55, -0.33, 0);
+
+      const rightCheek = new THREE.Mesh(cheekShape, cheekMaterial);
+      rightCheek.scale.set(1.3, 0.7, 0.2);
+      placeOnFace(rightCheek, 0.55, -0.33, 0);
+
+      // Smile: half a ring, flipped upside down so it curves up at the ends
+      const smileShape = new THREE.TorusGeometry(0.1, 0.022, 16, 32, Math.PI);
+      const smile = new THREE.Mesh(smileShape, eyeMaterial);
+      placeOnFace(smile, 0, -0.27, 0);
+      smile.rotation.z = Math.PI;
+
+      // 6. The lights
       const softLight = new THREE.AmbientLight('white', 1);
       const sunLight = new THREE.DirectionalLight('white', 2);
       sunLight.position.set(3, 4, 5);
       scene.add(softLight, sunLight);
 
-      // 6. Take the picture
+      // 7. Take the picture
       renderer.render(scene, camera);
     </script>
   </body>
