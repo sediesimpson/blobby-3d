@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title> blobby, but in 3d </title>
+    <title>Blobby, but in 3D</title>
     <style>
       body {
         margin: 0;
@@ -19,34 +19,79 @@
     </script>
     <script type="module">
       import * as THREE from "three";
+
       // 1. The stage
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color('#fdf6ec');
-        
-        // 2. The camera
-        const camera = new THREE.PerspectiveCamera (50, window.innerWidth/ window.innerHeight, 0.1, 100);
-        camera.position.set(0,0,6);
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color('#fdf6ec');
 
-        // 3. The renderer 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+      // 2. The camera
+      const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.set(0, 0, 6);
 
-        // 4. Blobby (just a ball for now)
-        const geometry = new THREE.SphereGeometry(1, 64, 64);
-        const material = new THREE.MeshStandardMaterial({ color: '#bfe3f7' });
-        const blobby = new THREE.Mesh(geometry, material);
-        scene.add(blobby);
+      // 3. The renderer
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
 
-        // 5. The lights
-        const softLight = new THREE.AmbientLight('white', 1);
-        const sunLight = new THREE.DirectionalLight('white', 2);
-        sunLight.position.set(3, 4, 5);
-        scene.add(softLight, sunLight);
+      // 4. Blobby: one sphere, sculpted into shape
+      const geometry = new THREE.SphereGeometry(1, 128, 128);
+      const points = geometry.attributes.position;
 
-        // 6. Take the picture
-        renderer.render(scene, camera);
+      for (let i = 0; i < points.count; i++) {
+        const x = points.getX(i);
+        const y = points.getY(i);
+        const z = points.getZ(i);
+
+        // The top half stays as a round dome
+        if (y >= 0) continue;
+
+        // How far down this point is: 0 = the middle, 1 = the very bottom
+        const down = -y;
+
+        // Which way this point faces around Blobby
+        const around = Math.atan2(z, x);
+        const sideways = Math.hypot(x, z) || 1;
+
+        let width;
+        let newY;
+
+        if (down < 0.7) {
+          // Straight sides
+          width = 1;
+          newY = -(down / 0.7) * 1.2;
+        } else {
+          // Rounded bottom with little legs
+          const curve = ((down - 0.7) / 0.3) * Math.PI / 2;
+          const leg = Math.abs(Math.cos(3 * (around - Math.PI / 2)));
+          width = Math.cos(curve);
+          newY = -1.2 - 0.2 * Math.sin(curve) - 0.4 * leg * Math.sin(2 * curve);
+        }
+
+        points.setXYZ(i, (x / sideways) * width, newY, (z / sideways) * width);
+      }
+
+      geometry.computeVertexNormals();
+
+      // A soft, slightly see-through material
+      const material = new THREE.MeshPhysicalMaterial({
+        color: '#bfe3f7',
+        transparent: true,
+        opacity: 0.75,
+        roughness: 0.3
+      });
+
+      const blobby = new THREE.Mesh(geometry, material);
+      blobby.position.y = 0.3;
+      scene.add(blobby);
+
+      // 5. The lights
+      const softLight = new THREE.AmbientLight('white', 1);
+      const sunLight = new THREE.DirectionalLight('white', 2);
+      sunLight.position.set(3, 4, 5);
+      scene.add(softLight, sunLight);
+
+      // 6. Take the picture
+      renderer.render(scene, camera);
     </script>
   </body>
 </html>
-
